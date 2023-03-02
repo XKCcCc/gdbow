@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投历详情</title>
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_top.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_left.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/resumePushDetail.css">
+    <script>
+        window.onload = function () {
+            // 头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    user: "",
+                    root: "http://106.55.99.196/",
+                },
+                methods: {
+                    //后台用户注销
+                    logout: async function (e) {
+                        e.preventDefault();
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/login/logout")
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            window.location.href = this.root + "incruit/index";
+                        }
+                    }
+                }
+            });
+            // 侧栏Vue实例
+            var aside = new Vue({
+                el: "#aside",
+                data: {
+                    root: "http://106.55.99.196/",
+                }
+            });
+            // 主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    root: "http://106.55.99.196/",
+                    imgRoot: "http://106.55.99.196/static/images/upload/",
+                    resume_id: "",
+                    position_id: "",
+                    resume: {},
+                    position: {},
+                },
+                methods: {
+                    //链接拼接
+                    pieceLink: function (root, fileName) {
+                        return root + fileName;
+                    },
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                },
+                // 自动执行函数
+                async mounted() {
+                    //获取url参数id值
+                    var urlParam = window.location.search;
+                    var paramArr = urlParam.split("&");
+                    this.resume_id = paramArr[0].replace("?resume_id=", "");
+                    this.position_id = paramArr[1].replace("position_id=", "");
+                    //异步请求简历数据
+                    var pushResumeInfo = await this.getData("getScreenResumeData/id/" + this.resume_id);
+                    this.resume = pushResumeInfo[0];
+                    //异步请求职位数据
+                    var pushPositionInfo = await this.getData("getScreenPositionData/id/" + this.position_id);
+                    this.position = pushPositionInfo[0];
+                    //异步请求用户名
+                    header.user = await this.getData("getUserData");
+                },
+            });
+            // 选项卡样式
+            selectCard(2);
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 后台顶部开始 -->
+    <header id="header">
+        <ul>
+            <li><a class="index_link" :href="root+'incruit/index'">前台首页</a></li>
+            <li><a @click="logout($event)" href="#">注销</a></li>
+            <li>{{user}}</li>
+        </ul>
+    </header>
+    <!-- 后台顶部结束 -->
+    <!-- 左边栏开始 -->
+    <aside id="aside">
+        <div><a class="logo" :href="root+'incruit/index'"><img class="logo_img"
+                    src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a></div>
+        <ul class="left_nav">
+            <li><a class="left_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="left_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="left_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="left_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+    </aside>
+    <!-- 左边栏结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <!-- 选项栏 -->
+        <ul class="select_nav">
+            <li><a class="top_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="top_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="top_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="top_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+        <div class="show_area">
+            <p>投历详情</p>
+            <div class="detail_area">
+                <div class="resume_detail">
+                    <!-- 简历表格1 -->
+                    <table class="table_1 table table-striped table-bordered">
+                        <tr class="thead">
+                            <td colspan="4">个人信息</td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td>
+                                <p>姓名：</p>
+                                <p>{{resume.name}}</p>
+                            </td>
+                            <td>
+                                <p>性别：</p>
+                                <p>{{resume.gender}}</p>
+                            </td>
+                            <td class="resume_img" rowspan="3">
+                                <p>头像：</p>
+                                <img :src="pieceLink(imgRoot, resume.user_img)">
+                            </td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td>
+                                <p>生日：</p>
+                                <p>{{resume.birthday}}</p>
+                            </td>
+                            <td>
+                                <p>学历：</p>
+                                <p>{{resume.edu_bg}}</p>
+                            </td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td>
+                                <p>电话：</p>
+                                <p>{{resume.phone}}</p>
+                            </td>
+                            <td>
+                                <p>邮箱：</p>
+                                <p>{{resume.mail}}</p>
+                            </td>
+                        </tr>
+                    </table>
+                    <!-- 简历表格2 -->
+                    <table class="table_2 table table-striped table-bordered">
+                        <tr class="thead">
+                            <td colspan="2">教育经历</td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td>
+                                <p>时间：</p>
+                                <p>{{resume.edu_time}}</p>
+                            </td>
+                            <td>
+                                <p>学校：</p>
+                                <p>{{resume.school}}</p>
+                            </td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td colspan="2">
+                                <p>专业：</p>
+                                <p>{{resume.profess}}</p>
+                            </td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td colspan="2">
+                                <p>主修课程：</p>
+                                <p>{{resume.major}}</p>
+                            </td>
+                        </tr>
+                    </table>
+                    <!-- 简历表格3 -->
+                    <table class="table_3 table table-striped table-bordered">
+                        <tr class="thead">
+                            <td colspan="2">工作经历</td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td>
+                                <p>职位：</p>
+                                <p>{{resume.position}}</p>
+                            </td>
+                            <td>
+                                <p>时间：</p>
+                                <p>{{resume.pos_time}}</p>
+                            </td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td colspan="2">
+                                <p>公司：</p>
+                                <p>{{resume.company}}</p>
+                            </td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td colspan="2">
+                                <p>职位内容：</p>
+                                <div>{{resume.pos_cont}}</div>
+                            </td>
+                        </tr>
+                    </table>
+                    <!-- 简历表格4 -->
+                    <table class="table_4 table table-striped table-bordered">
+                        <tr class="thead">
+                            <td>项目经历</td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td>
+                                <p>项目名称：</p>
+                                <p>{{resume.item}}</p>
+                            </td>
+                        </tr>
+                        <tr class="resume_info">
+                            <td>
+                                <p>项目内容：</p>
+                                <div>{{resume.item_cont}}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="pos_detail">
+                    <!-- 职位表格1 -->
+                    <table class="table_1 table table-striped table-bordered">
+                        <tr class="thead">
+                            <td colspan="2">职位信息</td>
+                        </tr>
+                        <tr class="pos_info">
+                            <td>
+                                <p>职位名称：</p>
+                                <p>{{position.name}}</p>
+                            </td>
+                            <td>
+                                <p>薪资：</p>
+                                <p>{{position.salary}}</p>
+                            </td>
+                        </tr>
+                        <tr class="pos_info">
+                            <td>
+                                <p>地区：</p>
+                                <p>{{position.region}}</p>
+                            </td>
+                            <td>
+                                <p>学历：</p>
+                                <p>{{position.edu_bg}}</p>
+                            </td>
+                        </tr>
+                        <tr class="pos_info">
+                            <td colspan="2">
+                                <p>类型：</p>
+                                <p>{{position.type}}</p>
+                            </td>
+                        </tr>
+                        <tr class="pos_info">
+                            <td colspan="2">
+                                <p>工作职责：</p>
+                                <div>{{position.duty}}</div>
+                            </td>
+                        </tr>
+                        <tr class="pos_info">
+                            <td colspan="2">
+                                <p>任职要求：</p>
+                                <div>{{position.require}}</div>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="table_2_3">
+                        <!-- 职位表格2 -->
+                        <table class="table_2 table table-striped table-bordered">
+                            <tr class="thead">
+                                <td colspan="2">公司信息</td>
+                            </tr>
+                            <tr class="pos_info">
+                                <td class="company_info">
+                                    <img :src="pieceLink(imgRoot, position.com_img)">
+                                    <p>{{position.company}}</p>
+                                    <p>{{position.com_type}}</p>
+                                </td>
+                            </tr>
+                        </table>
+                        <!-- 职位表格3 -->
+                        <table class="table_3 pos_table_3 table table-striped table-bordered">
+                            <tr class="thead">
+                                <td colspan="2">发布者信息</td>
+                            </tr>
+                            <tr class="pos_info">
+                                <td class="publisher_info">
+                                    <img :src="pieceLink(imgRoot, position.pub_img)">
+                                    <p>{{position.publisher}}</p>
+                                    <p>{{position.phone}}</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- 主要内容结束 -->
+</body>
+
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金饭网后台管理系统</title>
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_top.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_left.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/positionAdmin.css">
+    <script>
+        window.onload = function () {
+            //头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    user: "",
+                    root: "http://106.55.99.196/",
+                },
+                methods: {
+                    //后台用户注销
+                    logout: async function (e) {
+                        e.preventDefault();
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/login/logout")
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            window.location.href = this.root + "incruit/index";
+                        }
+                    }
+                }
+            });
+            //侧栏Vue实例
+            var aside = new Vue({
+                el: "#aside",
+                data: {
+                    root: "http://106.55.99.196/",
+                }
+            });
+            //主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    root: "http://106.55.99.196/",
+                    imgRoot: "http://106.55.99.196/static/images/upload/",
+                    positionList: [],
+                    currentPageData: [],
+                    totalPage: 1,
+                    currentPage: 1,
+                    pageSize: 9,
+                    headPage: 1,
+                },
+                methods: {
+                    //链接拼接
+                    pieceLink: function (root, fileName) {
+                        return root + fileName;
+                    },
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                    //异步删除职位
+                    delPosition: async function (e, id, warnText) {
+                        e.preventDefault();
+                        if (!confirm("你确定要删除这个" + warnText + "吗？")) {
+                            return;
+                        }
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/position/positionDelete?id=" + id)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            this.positionList = await this.getData("getAllPositionData");
+                            this.totalPage = Math.ceil(this.positionList.length / this.pageSize);
+                            this.totalPage = this.totalPage == 0 ? 1 : this.totalPage;
+                            this.getCurrentPageData();
+                        }
+                        else {
+                            alert("删除失败，请重试！");
+                        }
+                    },
+                    // 分页展示
+                    getCurrentPageData: function () {
+                        let begin = (this.currentPage - 1) * this.pageSize;
+                        let end = this.currentPage * this.pageSize;
+                        this.currentPageData = this.positionList.slice(begin, end);
+                    },
+                    firstPage: function () {
+                        this.currentPage = this.headPage;
+                        this.getCurrentPageData();
+                    },
+                    lastPage: function () {
+                        if (this.currentPage == this.totalPage) {
+                            return false;
+                        }
+                        this.currentPage = this.totalPage;
+                        this.getCurrentPageData();
+                    },
+                    prevPage: function () {
+                        if (this.currentPage == 1) {
+                            return false;
+                        }
+                        this.currentPage--;
+                        this.getCurrentPageData();
+                    },
+                    nextPage: function () {
+                        if (this.currentPage == this.totalPage) {
+                            return false;
+                        }
+                        this.currentPage++;
+                        this.getCurrentPageData();
+                    },
+                },
+                //自动执行函数
+                async mounted() {
+                    //异步职位数据
+                    this.positionList = await this.getData("getAllPositionData");
+                    // 职位分页
+                    this.totalPage = Math.ceil(this.positionList.length / this.pageSize);
+                    this.totalPage = this.totalPage == 0 ? 1 : this.totalPage;
+                    this.getCurrentPageData();
+                    //异步请求用户名
+                    header.user = await this.getData("getUserData");
+                },
+            });
+            //选项卡样式
+            selectCard(0);
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 后台顶部开始 -->
+    <header id="header">
+        <ul>
+            <li><a class="index_link" :href="root+'incruit/index'">前台首页</a></li>
+            <li><a @click="logout($event)" href="#">注销</a></li>
+            <li>{{user}}</li>
+        </ul>
+    </header>
+    <!-- 后台顶部结束 -->
+    <!-- 左边栏开始 -->
+    <aside id="aside">
+        <div><a class="logo" :href="root+'incruit/index'">
+                <img class="logo_img" src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a></div>
+        <ul class="left_nav">
+            <li><a class="left_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="left_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="left_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="left_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+    </aside>
+    <!-- 左边栏结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <!-- 选项栏 -->
+        <ul class="select_nav">
+            <li><a class="top_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="top_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="top_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="top_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+        <div class="admin_area" id="div">
+            <p>职位管理</p>
+            <!-- 职位表格 -->
+            <table class="pos_tab table table-striped table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>职位名称</th>
+                        <th>薪资</th>
+                        <th>地区</th>
+                        <th>学历</th>
+                        <th>发布者</th>
+                        <th>联系方式</th>
+                        <th>发布时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tr v-for="position in currentPageData">
+                    <td>{{position.name}}</td>
+                    <td>{{position.salary}}</td>
+                    <td>{{position.region}}</td>
+                    <td>{{position.edu_bg}}</td>
+                    <td>{{position.publisher}}</td>
+                    <td>{{position.phone}}</td>
+                    <td>{{position.pub_time}}</td>
+                    <td class="opt_btn">
+                        <a :href="root+'position/positionModify?id='+position.id">
+                            <img src="http://106.55.99.196/static/images/modify.png">
+                            <p>修改</p>
+                        </a>
+                        <a href="#" @click="delPosition($event, position.id, '职位')">
+                            <img src="http://106.55.99.196/static/images/delete.png">
+                            <p>删除</p>
+                        </a>
+                    </td>
+                </tr>
+            </table>
+            <!-- 翻页按钮 -->
+            <div class="btnGroup">
+                <button class="pageBtn" @click="firstPage()">首页</button>
+                <button class="pageBtn" @click="prevPage()">上一页</button>
+                <button class="pageBtn" @click="nextPage()">下一页</button>
+                <button class="pageBtn" @click="lastPage()">尾页</button>
+            </div>
+        </div>
+    </main>
+    <!-- 主要内容结束 -->
+</body>
+
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投历箱</title>
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_top.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_left.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/resumeBox.css">
+    <script>
+        window.onload = function () {
+            // 头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    user: "",
+                    root: "http://106.55.99.196/",
+                },
+                methods: {
+                    //后台用户注销
+                    logout: async function (e) {
+                        e.preventDefault();
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/login/logout")
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            window.location.href = this.root + "incruit/index";
+                        }
+                    }
+                }
+            });
+            // 侧栏Vue实例
+            var aside = new Vue({
+                el: "#aside",
+                data: {
+                    root: "http://106.55.99.196/",
+                }
+            });
+            // 主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    root: "http://106.55.99.196/",
+                    imgRoot: "http://106.55.99.196/static/images/upload/",
+                    resumeBoxList: [],
+                    currentPageData: [],
+                    totalPage: 1,
+                    currentPage: 1,
+                    pageSize: 9,
+                    headPage: 1,
+                },
+                methods: {
+                    //链接拼接
+                    pieceLink: function (root, fileName) {
+                        return root + fileName;
+                    },
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                    // 删除投历
+                    delResumeInfo: async function (e, id, warnText) {
+                        e.preventDefault();
+                        if (!confirm("你确定要删除这个" + warnText + "吗？")) {
+                            return;
+                        }
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/resume/resumePushDelete?id=" + id)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            this.resumeBoxList = await this.getData("getAllPushResumeData");
+                            this.totalPage = Math.ceil(this.resumeBoxList.length / this.pageSize);
+                            this.totalPage = this.totalPage == 0 ? 1 : this.totalPage;
+                            this.getCurrentPageData();
+                        }
+                        else {
+                            alert("删除失败，请重试！");
+                        }
+                    },
+                    // 分页展示
+                    getCurrentPageData: function () {
+                        let begin = (this.currentPage - 1) * this.pageSize;
+                        let end = this.currentPage * this.pageSize;
+                        this.currentPageData = this.resumeBoxList.slice(begin, end);
+                    },
+                    firstPage: function () {
+                        this.currentPage = this.headPage;
+                        this.getCurrentPageData();
+                    },
+                    lastPage: function () {
+                        if (this.currentPage == this.totalPage) {
+                            return false;
+                        }
+                        this.currentPage = this.totalPage;
+                        this.getCurrentPageData();
+                    },
+                    prevPage: function () {
+                        if (this.currentPage == 1) {
+                            return false;
+                        }
+                        this.currentPage--;
+                        this.getCurrentPageData();
+                    },
+                    nextPage: function () {
+                        if (this.currentPage == this.totalPage) {
+                            return false;
+                        }
+                        this.currentPage++;
+                        this.getCurrentPageData();
+                    },
+                },
+                // 自动执行函数
+                async mounted() {
+                    //异步请求数据
+                    this.resumeBoxList = await this.getData("getAllPushResumeData");
+                    // 职位分页
+                    this.totalPage = Math.ceil(this.resumeBoxList.length / this.pageSize);
+                    this.totalPage = this.totalPage == 0 ? 1 : this.totalPage;
+                    this.getCurrentPageData();
+                    //异步请求用户名
+                    header.user = await this.getData("getUserData");
+                },
+            });
+            // 选项卡样式
+            selectCard(2);
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 后台顶部开始 -->
+    <header id="header">
+        <ul>
+            <li><a class="index_link" :href="root+'incruit/index'">前台首页</a></li>
+            <li><a @click="logout($event)" href="#">注销</a></li>
+            <li>{{user}}</li>
+        </ul>
+    </header>
+    <!-- 后台顶部结束 -->
+    <!-- 左边栏开始 -->
+    <aside id="aside">
+        <div><a class="logo" :href="root+'incruit/index'">
+                <img class="logo_img" src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a></div>
+        <ul class="left_nav">
+            <li><a class="left_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="left_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="left_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="left_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+    </aside>
+    <!-- 左边栏结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <!-- 选项栏 -->
+        <ul class="select_nav">
+            <li><a class="top_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="top_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="top_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="top_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+        <div class="admin_area">
+            <p>投历箱</p>
+            <!-- 投历表格 -->
+            <table class="resume_tab table table-striped table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>投历者</th>
+                        <th>性别</th>
+                        <th>学历</th>
+                        <th>联系方式</th>
+                        <th>投历岗位</th>
+                        <th>发布者</th>
+                        <th>联系方式</th>
+                        <th>投历时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tr v-for="pushResumeInfo in currentPageData">
+                    <td>{{pushResumeInfo.name}}</td>
+                    <td>{{pushResumeInfo.gender}}</td>
+                    <td>{{pushResumeInfo.edu_bg}}</td>
+                    <td>{{pushResumeInfo.phone}}</td>
+                    <td>{{pushResumeInfo.position}}</td>
+                    <td>{{pushResumeInfo.publisher}}</td>
+                    <td>{{pushResumeInfo.pub_phone}}</td>
+                    <td>{{pushResumeInfo.push_time}}</td>
+                    <td class="opt_btn">
+                        <a
+                            :href="root+'resume/resumePushDetail?resume_id='+pushResumeInfo.resume_id+'&position_id='+pushResumeInfo.position_id">
+                            <img src="http://106.55.99.196/static/images/detail.png">
+                            <p>查看</p>
+                        </a>
+                        <a href="#" @click="delResumeInfo($event, pushResumeInfo.push_id, '投历信息')">
+                            <img src="http://106.55.99.196/static/images/delete.png">
+                            <p>删除</p>
+                        </a>
+                    </td>
+                </tr>
+            </table>
+            <!-- 翻页按钮 -->
+            <div class="btnGroup">
+                <button class="pageBtn" @click="firstPage()">首页</button>
+                <button class="pageBtn" @click="prevPage()">上一页</button>
+                <button class="pageBtn" @click="nextPage()">下一页</button>
+                <button class="pageBtn" @click="lastPage()">尾页</button>
+            </div>
+        </div>
+    </main>
+    <!-- 主要内容结束 -->
+</body>
+
+</html>

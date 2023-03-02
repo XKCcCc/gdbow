@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>广告管理</title>
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/advertiseAdmin.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_top.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_left.css">
+    <script>
+        window.onload = function () {
+            //头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    user: "",
+                    root: "http://106.55.99.196/",
+                },
+                methods: {
+                    //后台用户注销
+                    logout: async function (e) {
+                        e.preventDefault();
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/login/logout")
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            window.location.href = this.root + "incruit/index";
+                        }
+                    }
+                }
+            });
+            //侧栏Vue实例
+            var aside = new Vue({
+                el: "#aside",
+                data: {
+                    root: "http://106.55.99.196/",
+                }
+            });
+            //主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    root: "http://106.55.99.196/",
+                    imgRoot: "http://106.55.99.196/static/images/upload/",
+                    carouselImgList: [],
+                    carouselImg: "",
+                    posDetailImg: "",
+                    posDetailModifyImg: "",
+                    comDetailImg: "",
+                    comDetailModifyImg: "",
+                    searchDetailImg: "",
+                    searchDetailModifyImg: "",
+                },
+                methods: {
+                    //链接拼接
+                    pieceLink: function (root, fileName) {
+                        return root + fileName;
+                    },
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                    // 获取上传图片信息
+                    getImgInfo: function (inputClass, inputClassNum) {
+                        var f = document.getElementsByClassName(inputClass)[inputClassNum].files[0];
+                        if (inputClassNum == 0) {
+                            this.carouselImg = f;
+                        }
+                        else if (inputClassNum == 1) {
+                            this.posDetailModifyImg = f;
+                        }
+                        else if (inputClassNum == 2) {
+                            this.comDetailModifyImg = f;
+                        }
+                        else if (inputClassNum == 3) {
+                            this.searchDetailModifyImg = f;
+                        }
+                    },
+                    // 异步提交表单
+                    submitFormData: async function (api, img, id) {
+                        let formData = new FormData();
+                        formData.append("advImg", img);
+                        if (id == this.posDetailImg.id) {
+                            formData.append("id", this.posDetailImg.id)
+                        }
+                        else if (id == this.comDetailImg.id) {
+                            formData.append("id", this.comDetailImg.id)
+                        }
+                        else if (id == this.searchDetailImg.id) {
+                            formData.append("id", this.searchDetailImg.id)
+                        }
+                        var res;
+                        await axios
+                            .post("http://106.55.99.196/" + api, formData)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        switch (res) {
+                            case 0:
+                                alert("添加失败，请重试！");
+                                break;
+                            case 1:
+                                //添加成功
+                                this.carouselImgList = await this.getData("getScreenAdvertiseData?type=carousel");
+                                break;
+                            case 2:
+                                alert("修改失败，请重试！");
+                                break;
+                            case 3:
+                                //修改成功
+                                var posDetail_img = await this.getData("getScreenAdvertiseData?type=posDetail");
+                                this.posDetailImg = posDetail_img[0];
+                                var comDetail_img = await this.getData("getScreenAdvertiseData?type=comDetail");
+                                this.comDetailImg = comDetail_img[0];
+                                var searchDetail_img = await this.getData("getScreenAdvertiseData?type=searchDetail");
+                                this.searchDetailImg = searchDetail_img[0];
+                                break;
+                        }
+                    },
+                    //异步删除图片
+                    delImg: async function (e, id, warnText) {
+                        e.preventDefault();
+                        if (!confirm("你确定要删除这个" + warnText + "吗？")) {
+                            return;
+                        }
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/incruit/advertiseDelete?id=" + id)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            this.carouselImgList = await this.getData("getScreenAdvertiseData?type=carousel");
+                        }
+                        else {
+                            alert("删除失败，请重试！");
+                        }
+                    }
+                },
+                //自动执行函数
+                async mounted() {
+                    //异步请求轮播图
+                    this.carouselImgList = await this.getData("getScreenAdvertiseData?type=carousel");
+                    //异步请求职位详情页广告图
+                    var posDetail_img = await this.getData("getScreenAdvertiseData?type=posDetail");
+                    this.posDetailImg = posDetail_img[0];
+                    //异步请求公司详情页广告图
+                    var comDetail_img = await this.getData("getScreenAdvertiseData?type=comDetail");
+                    this.comDetailImg = comDetail_img[0];
+                    //异步请求搜索详情页广告图
+                    var searchDetail_img = await this.getData("getScreenAdvertiseData?type=searchDetail");
+                    this.searchDetailImg = searchDetail_img[0];
+                    //请求用户名
+                    header.user = await this.getData("getUserData");
+                },
+            });
+            //选项卡样式
+            selectCard(5);
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 后台顶部开始 -->
+    <header id="header">
+        <ul>
+            <li><a class="index_link" :href="root+'incruit/index'">前台首页</a></li>
+            <li><a @click="logout($event)" href="#">注销</a></li>
+            <li>{{user}}</li>
+        </ul>
+    </header>
+    <!-- 后台顶部结束 -->
+    <!-- 左边栏开始 -->
+    <aside id="aside">
+        <div><a class="logo" :href="root+'incruit/index'"><img class="logo_img"
+                    src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a></div>
+        <ul class="left_nav">
+            <li><a class="left_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="left_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="left_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="left_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+    </aside>
+    <!-- 左边栏结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <!-- 选项栏 -->
+        <ul class="select_nav">
+            <li><a class="top_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="top_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="top_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="top_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+        <div class="admin_area">
+            <p>广告管理</p>
+            <!-- 轮播图广告 -->
+            <ul class="imgList">
+                <li v-for="carousel in carouselImgList">
+                    <img :src="pieceLink(imgRoot, carousel.img_src)">
+                    <div class="imgTitle">轮播广告图</div>
+                    <div class="imgOperate"><a href="#" @click="delImg($event, carousel.id, '广告')">
+                            <img src="http://106.55.99.196/static/images/delete.png">
+                        </a></div>
+                </li>
+                <!-- 添加轮播图广告 -->
+                <li class="add">
+                    <form class="imgForm" action="#" method="post" enctype="multipart/form-data">
+                        <input class="upload_img" type="file" name="advImg"
+                            @change="getImgInfo('upload_img', 0),submitFormData('incruit/advertiseAddSave', carouselImg, -100)">
+                        <img src="http://106.55.99.196/static/images/add.png">
+                    </form>
+                </li>
+            </ul>
+            <!-- 详情页广告 -->
+            <ul class="imgList">
+                <!-- 职位详情页广告 -->
+                <li class="detailPageImg">
+                    <img :src="pieceLink(imgRoot, posDetailImg.img_src)">
+                    <div class="imgTitle">职位详情页广告图</div>
+                    <div class="imgOperate">
+                        <form class="imgForm" action="#" method="post" enctype="multipart/form-data">
+                            <input hidden type="text" name="id" :value="posDetailImg.id">
+                            <input class="upload_img" type="file" name="advImg"
+                                @change="getImgInfo('upload_img', 1),submitFormData('incruit/advertiseModifySave', posDetailModifyImg, posDetailImg.id)">
+                            <img src="http://106.55.99.196/static/images/modify.png">
+                        </form>
+                    </div>
+                </li>
+                <!-- 公司详情页广告 -->
+                <li class="detailPageImg">
+                    <img :src="pieceLink(imgRoot, comDetailImg.img_src)">
+                    <div class="imgTitle">公司详情页广告图</div>
+                    <div class="imgOperate">
+                        <form class="imgForm" action="#" method="post" enctype="multipart/form-data">
+                            <input hidden type="text" name="id" :value="comDetailImg.id">
+                            <input class="upload_img" type="file" name="advImg"
+                                @change="getImgInfo('upload_img', 2),submitFormData('incruit/advertiseModifySave', comDetailModifyImg, comDetailImg.id)">
+                            <img src="http://106.55.99.196/static/images/modify.png">
+                        </form>
+                    </div>
+                </li>
+                <!-- 搜索详情页广告 -->
+                <li class="detailPageImg">
+                    <img :src="pieceLink(imgRoot, searchDetailImg.img_src)">
+                    <div class="imgTitle">搜索详情页广告图</div>
+                    <div class="imgOperate">
+                        <form class="imgForm" action="#" method="post" enctype="multipart/form-data">
+                            <input hidden type="text" name="id" :value="searchDetailImg.id">
+                            <input class="upload_img" type="file" name="advImg"
+                                @change="getImgInfo('upload_img', 3),submitFormData('incruit/advertiseModifySave', searchDetailModifyImg, searchDetailImg.id)">
+                            <img src="http://106.55.99.196/static/images/modify.png">
+                        </form>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </main>
+    <!-- 主要内容结束 -->
+
+</body>
+
+</html>

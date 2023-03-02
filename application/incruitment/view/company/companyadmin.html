@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公司管理</title>
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_top.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_left.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/companyAdmin.css">
+    <script>
+        window.onload = function () {
+            //头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    user: "",
+                    root: "http://106.55.99.196/",
+                },
+                methods: {
+                    //后台用户注销
+                    logout: async function (e) {
+                        e.preventDefault();
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/login/logout")
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            window.location.href = this.root + "incruit/index";
+                        }
+                    }
+                }
+            });
+            // //侧栏Vue实例
+            var aside = new Vue({
+                el: "#aside",
+                data: {
+                    root: "http://106.55.99.196/",
+                }
+            });
+            //主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    root: "http://106.55.99.196/",
+                    imgRoot: "http://106.55.99.196/static/images/upload/",
+                    companyList: [],
+                    classifyModuleList: [],
+                    company: "",
+                    com_type: "",
+                    com_img: "",
+                },
+                methods: {
+                    //链接拼接
+                    pieceLink: function (root, fileName) {
+                        return root + fileName;
+                    },
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                    // 获取上传图片信息
+                    getImgInfo: function (inputClass, inputClassNum) {
+                        var f = document.getElementsByClassName(inputClass)[inputClassNum].files[0];
+                        if (inputClassNum == 0) {
+                            this.com_img = f;
+                        }
+                    },
+                    //验证表单内容
+                    validateAll: function () {
+                        if (!this.company) {
+                            alert("公司名称不能为空！");
+                        }
+                        else if (!this.com_type) {
+                            alert("公司类型不能为空！");
+                        }
+                        else {
+                            this.submitFormData("company/companyAddSave");
+                        }
+                    },
+                    //异步提交表单
+                    submitFormData: async function (api) {
+                        let formData = new FormData();
+                        formData.append("company", this.company);
+                        formData.append("type", this.com_type);
+                        formData.append("com_img", this.com_img);
+                        var res;
+                        await axios
+                            .post("http://106.55.99.196/" + api, formData)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res) {
+                            //添加成功!
+                            this.company = this.com_type = this.com_img = "";
+                            $(".addCom>div>form").remove();
+                            $(".addCom>div").append("<img src='http://106.55.99.196/static/images/add.png'>");
+                            $(".addCom").one('click', function () {
+                                main.replaceForm();
+                            })
+                            this.companyList = await this.getData("getAllCompanyData");
+                        }
+                        else {
+                            alert("添加失败，请重试！");
+                            window.location.href = "http://106.55.99.196/company/companyAdmin";
+                        }
+                    },
+                    // 点击事件表单替换
+                    replaceForm: function () {
+                        $(".addCom>div>img").remove();
+                        $(".addCom>div").append("<form id='form' action='#' method='post' enctype='multipart/form-data'></form>");
+                        $(".addCom>div>form").append("<div class='file_input'></div>");
+                        $(".addCom>div>form>div").append("<input class='upload_img' type='file' name='com_img' accept='image/*'>");
+                        $(".addCom>div>form").append("<input class='company_input' type='text' name='company'>");
+                        $(".addCom>div>form").append("<select class='com_type_input' name='type'></select>");
+                        $(".addCom>div>form>select").append("<option selected disabled='disabled' label='公司类型'></option>");
+                        for (var i = 0; i < this.classifyModuleList.length; i++) {
+                            $(".addCom>div>form>select").append(
+                                "<option value='" + this.classifyModuleList[i] + "'>" + this.classifyModuleList[i] + "</option>");
+                        }
+                        $(".addCom>div>form").append("<input id='submit_btn' type='submit' value='添 加'>");
+                        $(".upload_img").on("change", function () {
+                            showComImg('upload_img', 'file_input', 0, this);
+                            main.getImgInfo('upload_img', 0);
+                        })
+                        $("#form").on("submit", function (event) {
+                            event.preventDefault();
+                            main.company = $(".company_input").val();
+                            main.com_type = $(".com_type_input").val();
+                            main.validateAll();
+                        })
+                    },
+                    //异步删除公司
+                    delCompany: async function (e, id, warnText) {
+                        e.preventDefault();
+                        if (!confirm("你确定要删除这个" + warnText + "吗？")) {
+                            return;
+                        }
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/company/companyDelete?id=" + id)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            this.companyList = await this.getData("getAllCompanyData");
+                        }
+                        else {
+                            alert("删除失败，请重试！");
+                        }
+
+                    }
+                },
+                //自动执行函数
+                async mounted() {
+                    //异步请求公司数据
+                    this.companyList = await this.getData("getAllCompanyData");
+                    //异步请求分类模块
+                    this.classifyModuleList = await this.getData("getAllClassifyModuleData");
+                    //异步请求用户名
+                    header.user = await this.getData("getUserData");
+                },
+            });
+            //选项卡样式
+            selectCard(3);
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 后台顶部开始 -->
+    <header id="header">
+        <ul>
+            <li><a class="index_link" :href="root+'incruit/index'">前台首页</a></li>
+            <li><a @click="logout($event)" href="#">注销</a></li>
+            <li>{{user}}</li>
+        </ul>
+    </header>
+    <!-- 后台顶部结束 -->
+    <!-- 左边栏开始 -->
+    <aside id="aside">
+        <div><a class="logo" :href="root+'incruit/index'"><img class="logo_img"
+                    src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a></div>
+        <ul class="left_nav">
+            <li><a class="left_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="left_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="left_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="left_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+    </aside>
+    <!-- 左边栏结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <!-- 选项栏 -->
+        <ul class="select_nav">
+            <li><a class="top_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="top_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="top_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="top_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+        <!-- 公司展示 -->
+        <div class="admin_area">
+            <p>公司管理</p>
+            <ul class="com_list">
+                <li v-for="company in companyList">
+                    <div class="del_com">
+                        <a href="#" @click="delCompany($event, company.id, '公司')">
+                            <img class="del" src="http://106.55.99.196/static/images/comDel.png">
+                        </a>
+                    </div>
+                    <a :href="root+'company/companyDetail?company='+company.company">
+                        <div class="com_cont_1">
+                            <img :src="pieceLink(imgRoot, company.com_img)">
+                        </div>
+                        <div class="com_cont_2">
+                            <p>{{company.company}}</p>
+                        </div>
+                        <div class="com_cont_3">
+                            <p>{{company.type}}</p>
+                        </div>
+                        <div class="com_cont_4">
+                            <p>已发布岗位：</p>
+                            <p>{{company.positionNum}}</p>
+                            <p>个</p>
+                        </div>
+                    </a>
+                </li>
+                <li class="addCom" @click.once="replaceForm()">
+                    <div>
+                        <img src="http://106.55.99.196/static/images/add.png">
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </main>
+    <!-- 主要内容结束 -->
+</body>
+
+</html>

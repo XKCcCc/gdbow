@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/login.css">
+    <title>金饭网登录</title>
+    <style>
+        .img_bg {
+            width: 65%;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            background: url(http://106.55.99.196/static/images/login_bg.jpg);
+            background-size: cover;
+        }
+
+        .white_bg {
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+    </style>
+    <script>
+        window.onload = function () {
+            // 头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    root: "http://106.55.99.196/",
+                },
+            });
+            // 主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    root: "http://106.55.99.196/",
+                    user: "",
+                    password: "",
+                    remember: "",
+                    error: "",
+                },
+                methods: {
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                    //异步提交表单
+                    submitFormData: async function (api) {
+                        let formData = new FormData();
+                        formData.append("user", this.user);
+                        formData.append("password", this.password);
+                        formData.append("remember", this.remember);
+                        var res;
+                        await axios
+                            .post("http://106.55.99.196/" + api, formData)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        switch (res) {
+                            case 0:
+                                this.error = "没有此用户，请先注册！";
+                                setTimeout(() => {
+                                    window.location.href = this.root + "login/signin";
+                                }, 2000);
+                                break;
+                            case 1:
+                                this.error = "密码错误，请重试！";
+                                break;
+                            case 2:
+                                this.error = "登录成功！";
+                                setTimeout(() => {
+                                    window.location.href = this.root + "incruit/index";
+                                }, 2000);
+                                break;
+                            case 3:
+                                this.error = "管理员登录成功！";
+                                setTimeout(() => {
+                                    window.location.href = this.root + "position/positionAdmin";
+                                }, 2000);
+                                break;
+                        }
+                    },
+                    //验证全部
+                    validateAll: function (e) {
+                        e.preventDefault();
+                        if (!this.user) {
+                            this.error = "用户名不能为空！";
+                        }
+                        else if (!this.password) {
+                            this.error = "密码不能为空！";
+                        }
+                        else {
+                            this.submitFormData("login/loginAuth");
+                        }
+                    }
+                },
+                //自动执行函数
+                async mounted() {
+                    //异步请求用户cookie数据
+                    var cookie = await this.getData("getUserCookieData");
+                    this.user = cookie.user;
+                    this.password = cookie.password;
+                }
+            })
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 头部开始 -->
+    <header id="header">
+        <div class="header_bar">
+            <a class="logo" :href="root+'incruit/index'">
+                <img class="logo_img" src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a>
+            <ul class="header_bar_nav">
+                <li><a :href="root+'incruit/index'">首页</a></li>
+            </ul>
+        </div>
+    </header>
+    <!-- 头部结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <!-- 背景图片 -->
+        <div class="img_bg">
+            <div class="white_bg"></div>
+        </div>
+        <!-- 登录框 -->
+        <div class="login_area">
+            <div class="login_signin">
+                <a :href="root+'login/login'">登 录</a>
+                <a :href="root+'login/signin'">注 册</a>
+            </div>
+            <form @submit="validateAll($event)" class="login_form" action="#" method="post">
+                <input class="user_input" type="text" name="user" placeholder="用户名" v-model="user">
+                <input class="pwd_input" type="password" name="password" placeholder="密码" v-model="password">
+                <div class="remember"><input type="checkbox" name="remember" v-model="remember">
+                    <p>记住密码</p>
+                </div>
+                <input class="sub_btn" type="submit" value="登 录">
+                <p class="signin_link">没有账号？<a :href="root+'login/signin'">立即注册</a></p>
+                <p class="error_remind text-danger">{{error}}</p><!-- 输入错误时报错 -->
+            </form>
+        </div>
+    </main>
+    <!-- 主要内容结束 -->
+</body>
+
+</html>

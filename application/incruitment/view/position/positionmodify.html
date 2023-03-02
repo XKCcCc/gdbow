@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修改职位</title>
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_top.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_left.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/positionModify.css">
+    <script>
+        window.onload = function () {
+            //头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    user: "",
+                    root: "http://106.55.99.196/",
+                },
+                methods: {
+                    //后台用户注销
+                    logout: async function (e) {
+                        e.preventDefault();
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/login/logout")
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            window.location.href = this.root + "incruit/index";
+                        }
+                    }
+                }
+            });
+            //侧栏Vue实例
+            var aside = new Vue({
+                el: "#aside",
+                data: {
+                    root: "http://106.55.99.196/",
+                }
+            });
+            //主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    root: "http://106.55.99.196/",
+                    imgRoot: "http://106.55.99.196/static/images/upload/",
+                    id: "",
+                    position: [],
+                    classifyModuleList: [],
+                    old_com_img: "",
+                    old_pub_img: "",
+                    error1: "",
+                    error2: "",
+                    error3: "",
+                },
+                methods: {
+                    //链接拼接
+                    pieceLink: function (root, fileName) {
+                        return root + fileName;
+                    },
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                    // 异步提交表单
+                    submitFormData: async function (api) {
+                        let formData = new FormData();
+                        formData.append("id", this.position.id)
+                        formData.append("name", this.position.name);
+                        formData.append("salary", this.position.salary);
+                        formData.append("duty", this.position.duty);
+                        formData.append("require", this.position.require);
+                        formData.append("region", this.position.region);
+                        formData.append("edu_bg", this.position.edu_bg);
+                        formData.append("type", this.position.type);
+                        formData.append("company", this.position.company);
+                        formData.append("com_type", this.position.com_type);
+                        formData.append("com_img", this.position.com_img);
+                        formData.append("publisher", this.position.publisher);
+                        formData.append("phone", this.position.phone);
+                        formData.append("pub_img", this.position.pub_img);
+                        formData.append("old_com_img", this.old_com_img);
+                        formData.append("old_pub_img", this.old_pub_img);
+                        var res;
+                        await axios
+                            .post("http://106.55.99.196/" + api, formData)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            document.getElementById("submit_btn").value = "修改成功！";
+                            document.getElementById("reset_btn").style.display = "none";
+                            setTimeout(() => {
+                                window.location.href = "http://106.55.99.196/position/positionadmin";
+                            }, 2000);
+                        }
+                        else {
+                            document.getElementById("submit_btn").value = "修改失败，请重试！";
+                            document.getElementById("reset_btn").style.display = "none";
+                            setTimeout(() => {
+                                window.location.href = "http://106.55.99.196/position/positionadmin";
+                            }, 2000);
+                        }
+                    },
+                    // 获取上传图片信息
+                    getImgInfo: function (inputClass, inputClassNum) {
+                        var f = document.getElementsByClassName(inputClass)[inputClassNum].files[0];
+                        if (inputClassNum == 0) {
+                            this.position.com_img = f;
+                        }
+                        else {
+                            this.position.pub_img = f;
+                        }
+                    },
+                    // 验证输入框内容
+                    validate: function (inputValue, alertText, errorArea) {
+                        if (!inputValue) {
+                            switch (errorArea) {
+                                case 1:
+                                    this.error1 = alertText + "不能为空!";
+                                    break;
+                                case 2:
+                                    this.error2 = alertText + "不能为空!";
+                                    break;
+                                case 3:
+                                    this.error3 = alertText + "不能为空!";
+                                    break;
+                            }
+                        }
+                        else {
+                            switch (errorArea) {
+                                case 1:
+                                    this.error1 = "";
+                                    break;
+                                case 2:
+                                    this.error2 = "";
+                                    break;
+                                case 3:
+                                    this.error3 = "";
+                                    break;
+                            }
+                        }
+                    },
+                    //验证全部内容
+                    validateAll: function (e) {
+                        e.preventDefault();
+                        for (let key in this.position) {
+                            if (this.position[key] == "") {
+                                if (key == "com_img" || key == "pub_img") {
+                                    continue;
+                                }
+                                else if (key == "name") this.validate(this.position.name, "职位名称", 1);
+                                else if (key == "salary") this.validate(this.position.salary, "薪资", 1);
+                                else if (key == "duty") this.validate(this.position.duty, "工作职责", 1);
+                                else if (key == "require") this.validate(this.position.require, "任职要求", 1);
+                                else if (key == "region") this.validate(this.position.region, "地区", 1);
+                                else if (key == "edu_bg") this.validate(this.position.edu_bg, "学历", 1);
+                                else if (key == "type") this.validate(this.position.type, "类型", 1);
+                                else if (key == "company") this.validate(this.position.company, "公司", 2);
+                                else if (key == "com_type") this.validate(this.position.com_type, "公司类型", 2);
+                                else if (key == "publisher") this.validate(this.position.publisher, "发布者", 3);
+                                else if (key == "phone") this.validate(this.position.phone, "联系方式", 3);
+                            }
+                        }
+                        if (!this.error1 && !this.error2 && !this.error3) {
+                            this.submitFormData("position/positionModifySave");
+                        }
+                    }
+                },
+                //自动执行函数
+                async mounted() {
+                    //获取url参数id值
+                    var urlParam = window.location.search;
+                    this.id = urlParam.replace("?id=", "");
+                    //异步请求职位数据
+                    var positionData = await this.getData("getScreenPositionData/id/" + this.id);
+                    this.position = positionData[0];
+                    this.old_com_img = this.position.com_img;
+                    this.old_pub_img = this.position.pub_img;
+                    //异步请求分类模块
+                    this.classifyModuleList = await this.getData("getAllClassifyModuleData");
+                    //异步请求用户名
+                    header.user = await this.getData("getUserData");
+                    // 工作职责、岗位要求换行
+                    this.position.duty = this.position.duty.replace(/；/g, "；\n");
+                    this.position.require = this.position.require.replace(/；/g, "；\n");
+                },
+            });
+            // 选项卡样式
+            selectCard(0);
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 后台顶部开始 -->
+    <header id="header">
+        <ul>
+            <li><a class="index_link" :href="root+'incruit/index'">前台首页</a></li>
+            <li><a @click="logout($event)" href="#">注销</a></li>
+            <li>{{user}}</li>
+        </ul>
+    </header>
+    <!-- 后台顶部结束 -->
+    <!-- 左边栏开始 -->
+    <aside id="aside">
+        <div><a class="logo" :href="root+'incruit/index'">
+                <img class="logo_img" src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a></div>
+        <ul class="left_nav">
+            <li><a class="left_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="left_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="left_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="left_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+    </aside>
+    <!-- 左边栏结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <!-- 选项栏 -->
+        <ul class="select_nav">
+            <li><a class="top_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="top_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="top_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="top_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+        <div class="admin_area">
+            <p>修改职位</p>
+            <form id="form" @submit="validateAll($event)" action="#" method="post" enctype="multipart/form-data">
+                <!-- 表格1 -->
+                <table class="table_1 table table-striped table-bordered">
+                    <tr class="thead">
+                        <td colspan="3">职位信息</td>
+                    </tr>
+                    <tr class="pos_info">
+                        <td>
+                            <input type="text" hidden value="" name="id" v-model="position.id">
+                            <p>职位名称：</p>
+                            <input type="text" name="name" v-model="position.name"
+                                @blur="validate(position.name, '职位名称', 1)">
+                        </td>
+                        <td rowspan="5">
+                            <p>工作职责：</p>
+                            <textarea cols="30" rows="10" name="duty" v-model="position.duty"
+                                @blur="validate(position.duty, '工作职责', 1)"></textarea>
+                        </td>
+                        <td rowspan="5">
+                            <p>任职要求：</p>
+                            <textarea cols="30" rows="10" name="require" v-model="position.require"
+                                @blur="validate(position.require, '任职要求', 1)"></textarea>
+                        </td>
+                    </tr>
+                    <tr class="pos_info">
+                        <td>
+                            <p>薪资：</p>
+                            <input type="text" name="salary" v-model="position.salary"
+                                @blur="validate(position.salary, '薪资', 1)">
+                        </td>
+                    </tr>
+                    <tr class="pos_info">
+                        <td>
+                            <p>地区：</p>
+                            <input type="text" name="region" v-model="position.region"
+                                @blur="validate(position.region, '地区', 1)">
+
+                        </td>
+                    </tr>
+                    <tr class="pos_info">
+                        <td>
+                            <p>学历：</p>
+                            <select name="edu_bg" v-model="position.edu_bg">
+                                <option disabled="disabled" label="请选择学历要求"></option>
+                                <option value="不限">不限</option>
+                                <option value="高中及以上">高中及以上</option>
+                                <option value="专科">专科</option>
+                                <option value="本科">本科</option>
+                                <option value="硕士">硕士</option>
+                                <option value="博士">博士</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr class="pos_info">
+                        <td>
+                            <p>类型：</p>
+                            <select name="type" v-model="position.type">
+                                <option disabled="disabled" label="请选择职位类型"></option>
+                                <option v-for="classifyModule in classifyModuleList" :value="classifyModule">
+                                    {{classifyModule}}</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="error_area text-danger" colspan="3">{{error1}}</td>
+                    </tr>
+                </table>
+                <div class="table_2_3">
+                    <!-- 表格2 -->
+                    <table class="table_2 table table-striped table-bordered">
+                        <tr class="thead">
+                            <td colspan="2">公司信息</td>
+                        </tr>
+                        <tr class="pos_info">
+                            <td>
+                                <p>公司名称：</p>
+                                <input type="text" name="company" v-model="position.company"
+                                    @blur="validate(position.company, '公司名称', 2)">
+                            </td>
+                            <td rowspan="2">
+                                <p>公司头像：</p>
+                                <div class="file_input">
+                                    <input class="upload_img" type="file"
+                                        onchange="showImg('upload_img', 'show_img', 0)"
+                                        @change="getImgInfo('upload_img', 0)" name="com_img" accept="image/*">
+                                    选择图片
+                                </div>
+                                <img class="show_img" :src="pieceLink(imgRoot, position.com_img)">
+                                <input type="text" hidden name="old_com_img" :value="old_com_img">
+                            </td>
+                        </tr>
+                        <tr class="pos_info">
+                            <td>
+                                <p>类型：</p>
+                                <select name="com_type" v-model="position.com_type">
+                                    <option disabled="disabled" label="请选择公司类型"></option>
+                                    <option v-for="classifyModule in classifyModuleList" :value="classifyModule">
+                                        {{classifyModule}}</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="error_area text-danger" colspan="3">{{error2}}</td>
+                        </tr>
+                    </table>
+                    <!-- 表格3 -->
+                    <table class="table_3 table table-striped table-bordered">
+                        <tr class="thead">
+                            <td colspan="2">发布者信息</td>
+                        </tr>
+                        <tr class="pos_info">
+                            <td>
+                                <p>发布者：</p>
+                                <input type="text" name="publisher" v-model="position.publisher"
+                                    @blur="validate(position.publisher, '发布者', 3)">
+                            </td>
+                            <td rowspan="2">
+                                <p>发布者头像：</p>
+                                <div class="file_input">
+                                    <input class="upload_img" type="file"
+                                        onchange="showImg('upload_img', 'show_img', 1)"
+                                        @change="getImgInfo('upload_img', 1)" name="pub_img" accept="image/*">
+                                    选择图片
+                                </div>
+                                <img class="show_img" :src="pieceLink(imgRoot, position.pub_img)">
+                                <input type="text" hidden name="old_pub_img" :value="old_pub_img">
+                            </td>
+                        </tr>
+                        <tr class="pos_info">
+                            <td>
+                                <p>联系方式：</p>
+                                <input type="text" name="phone" v-model="position.phone"
+                                    @blur="validate(position.phone, '联系方式', 3)">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="error_area text-danger" colspan="3">{{error3}}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="sub_btn">
+                    <input id="submit_btn" type="submit" value="修 改">
+                    <input id="reset_btn" type="reset" value="重 置">
+                </div>
+            </form>
+        </div>
+    </main>
+    <!-- 主要内容结束 -->
+</body>
+
+</html>

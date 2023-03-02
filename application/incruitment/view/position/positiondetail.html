@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>职位详情</title>
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/top.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/bottom.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/positionDetail.css">
+    <script>
+        window.onload = function () {
+            //头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    user: "",
+                    root: "http://106.55.99.196/",
+                },
+                methods: {
+                    //用户注销
+                    logout: async function (e) {
+                        e.preventDefault();
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/login/logout")
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            this.user = await main.getData("getUserData");
+                        }
+                    }
+                }
+            });
+            //底部Vue实例
+            var footer = new Vue({
+                el: "#footer",
+                data: {
+                    root: "http://106.55.99.196/",
+                }
+            });
+            //主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    imgRoot: "http://106.55.99.196/static/images/upload/",
+                    root: "http://106.55.99.196/",
+                    samePositionList: [],
+                    position: [],
+                    advertiseImg: "",
+                    id: "",
+                    user: "",
+                },
+                methods: {
+                    //链接拼接
+                    pieceLink: function (root, fileName) {
+                        return root + fileName;
+                    },
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                    // 获取投历结果
+                    getPushResumeResult: async function (api, paramValue, id) {
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196" + api, {
+                                params: {
+                                    user: paramValue,
+                                    pos_id: id,
+                                }
+                            })
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        switch (res) {
+                            case 0:
+                                window.location.href = "http://106.55.99.196/login/login";
+                                break;
+                            case 1:
+                                window.location.href = "http://106.55.99.196/resume/resumeAdd";
+                                break;
+                            case 2:
+                                $(".resume_btn").text("投历成功");
+                                break;
+                            case 3:
+                                $(".resume_btn").text("投历失败");
+                                break;
+                        }
+                    },
+
+                },
+                async mounted() {
+                    //获取url参数id值
+                    var urlParam = window.location.search;
+                    this.id = urlParam.replace("?id=", "");
+                    //异步请求筛选数据
+                    var positionData = await this.getData("getScreenPositionData/id/" + this.id);
+                    this.position = positionData[0];
+                    //异步请求其他职位
+                    this.samePositionList = await this.getData("getLimitPositionData?count=4&type=" + this.position.type);
+                    //异步请求广告图
+                    var advImg = await this.getData("getScreenAdvertiseData?type=posDetail");
+                    this.advertiseImg = advImg[0].img_src;
+                    //异步请求用户名
+                    header.user = this.user = await this.getData("getUserData");
+                    // 工作职责、岗位要求换行
+                    this.position.duty = this.position.duty.replace(/；/g, "；\n");
+                    this.position.require = this.position.require.replace(/；/g, "；\n");
+                },
+            })
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 头部开始 -->
+    <header id="header">
+        <div class="header_bar">
+            <a class="logo" :href="root+'incruit/index'">
+                <img class="logo_img" src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a>
+            <ul class="header_bar_nav">
+                <li><a :href="root+'incruit/index'">首页</a></li>
+                <li><a :href="root+'incruit/blank'">校园</a></li>
+                <li><a :href="root+'incruit/blank'">海归</a></li>
+                <li><a :href="root+'incruit/blank'">职位</a></li>
+            </ul>
+            <ul class="header_user_login">
+                <li v-if="!this.user"><a :href="root+'login/signin'">注册</a></li>
+                <li v-if="!this.user"><a :href="root+'login/login'">登录</a></li>
+                <li v-if="this.user"><a @click="logout($event)" href="#">注销</a></li>
+                <li v-if="this.user">{{user}}</li>
+                <li v-if="this.user"><a :href="root+'resume/resumeAdmin'">我的简历</a></li>
+                <li v-if="this.user == 'admin'"><a :href="root+'position/positionAdmin'">后台首页</a></li>
+            </ul>
+        </div>
+    </header>
+    <!-- 头部结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <!-- 职位主要信息 -->
+        <div class="pos_main">
+            <div class="pos_cont">
+                <div class="pos_cont_1">
+                    <p>{{position.name}}</p>
+                    <p>{{position.salary}}</p>
+                </div>
+                <div class="pos_cont_2">
+                    <p>{{position.region}}</p>
+                    <p>{{position.edu_bg}}</p>
+                    <p>{{position.type}}</p>
+                </div>
+                <div class="pos_cont_3">
+                    <img :src="pieceLink(imgRoot, position.com_img)">
+                    <p>{{position.company}}</p>
+                    <p>{{position.pub_time}}</p>
+                </div>
+            </div>
+            <div class="resume_btn_area">
+                <a @click="getPushResumeResult('/resume/resumePush', user, id)" class="resume_btn">投 简 历</a>
+            </div>
+        </div>
+        <div class="det_area">
+            <div class="pos_det">
+                <!-- 职位详情信息 -->
+                <div class="pos_det_cont">
+                    <p>工作职责</p>
+                    <div>{{position.duty}}</div>
+                    <p>岗位要求</p>
+                    <div>{{position.require}}</div>
+                    <p>发布者</p>
+                    <div class="publisher">
+                        <img :src="pieceLink(imgRoot, position.pub_img)">
+                        <p>{{position.publisher}}</p>
+                        <p>{{position.phone}}</p>
+                    </div>
+                </div>
+                <!-- 广告图片 -->
+                <div class="adv_area">
+                    <a :href="root+'search/searchDetail/keyword/'">
+                        <img :src="pieceLink(imgRoot, advertiseImg)"></a>
+                </div>
+            </div>
+            <div class="other_area">
+                <!-- 公司信息 -->
+                <div class="com_cont">
+                    <div class="com_cont_1">
+                        <img :src="pieceLink(imgRoot, position.com_img)">
+                    </div>
+                    <div class="com_cont_2">
+                        <p>{{position.company}}</p>
+                    </div>
+                    <div class="com_cont_3">
+                        <p>{{position.com_type}}</p>
+                    </div>
+                    <div class="com_cont_4">
+                        <p>已发布岗位：<span>{{position.positionNum}}</span>个</p>
+                    </div>
+                </div>
+                <div class="same_pos">
+                    <p>相关职位</p>
+                    <!-- 相关职位 -->
+                    <ul class="same_pos_list">
+                        <li v-for="position in samePositionList"><a
+                                :href="root+'position/positionDetail?id='+position.id">
+                                <div class="same_pos_cont_1">
+                                    <p>{{position.name}}</p>
+                                    <p>{{position.salary}}</p>
+                                </div>
+                                <div class="same_pos_cont_2">
+                                    <p>{{position.region}}</p>
+                                    <p>{{position.edu_bg}}</p>
+                                </div>
+                                <div class="same_pos_cont_3">
+                                    <img :src="pieceLink(imgRoot, position.com_img)">
+                                    <p>{{position.company}}</p>
+                                    <p>{{position.type}}</p>
+                                </div>
+                            </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </div>
+        <!-- 顶部跳转按钮 -->
+        <div class="top_btn">
+            <a href="#top"><img src="http://106.55.99.196/static/images/up.png"></a>
+        </div>
+    </main>
+    <!-- 主要内容结束 -->
+    <!-- 底部开始 -->
+    <footer id="footer">
+        <div class="footer_bar">
+            <div class="footer_bar_nav">
+                <ul>
+                    <li>简介</li>
+                    <li><a :href="root+'incruit/blank'">关于我们</a></li>
+                    <li><a :href="root+'incruit/blank'">法律协议</a></li>
+                    <li><a :href="root+'incruit/blank'">隐私条款</a></li>
+                </ul>
+                <ul>
+                    <li>合作</li>
+                    <li><a :href="root+'incruit/blank'">加入我们</a></li>
+                    <li><a :href="root+'incruit/blank'">联系我们</a></li>
+                    <li><a :href="root+'incruit/blank'">友情链接</a></li>
+                </ul>
+                <ul>
+                    <li>帮助</li>
+                    <li><a :href="root+'incruit/blank'">帮助中心</a></li>
+                    <li><a :href="root+'incruit/blank'">常见问题</a></li>
+                    <li><a :href="root+'incruit/blank'">防骗指南</a></li>
+                </ul>
+            </div>
+            <p class="footer_bar_txt">金饭网由Kc开发</p>
+        </div>
+    </footer>
+    <!-- 底部结束 -->
+</body>
+
+</html>

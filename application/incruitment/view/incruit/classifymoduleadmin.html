@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分类模块</title>
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_top.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/back_left.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/classifyModuleAdmin.css">
+    <script>
+        window.onload = function () {
+            //头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    user: "",
+                    root: "http://106.55.99.196/",
+                },
+                methods: {
+                    //后台用户注销
+                    logout: async function (e) {
+                        e.preventDefault();
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196//login/logout")
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            window.location.href = this.root + "incruit/index";
+                        }
+                    }
+                }
+            });
+            // 侧栏Vue实例
+            var aside = new Vue({
+                el: "#aside",
+                data: {
+                    root: "http://106.55.99.196/",
+                }
+            });
+            // 主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    root: "http://106.55.99.196/",
+                    imgRoot: "http://106.55.99.196/static/images/upload/",
+                    classifyModuleList: [],
+                    type: "",
+                },
+                methods: {
+                    //链接拼接
+                    pieceLink: function (root, fileName) {
+                        return root + fileName;
+                    },
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                    //异步提交表单
+                    submitFormData: async function (api) {
+                        let formData = new FormData();
+                        formData.append("type", this.type);
+                        var res;
+                        await axios
+                            .post("http://106.55.99.196/" + api, formData)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res) {
+                            this.type = "";
+                            $(".add").css("border", "");
+                            $(".add>div>form").remove();
+                            $(".add>div").append("<img src='http://106.55.99.196/static/images/add.png'>");
+                            //动态添加的表单绑定事件
+                            $(".add").one('click', function () {
+                                main.replaceForm();
+                            })
+                            this.classifyModuleList = await this.getData("getAllClassifyModuleData");
+                        }
+                        else {
+                            alert("添加失败，请重试！");
+                            window.location.href = "http://106.55.99.196/incruit/classifyModuleAmin";
+                        }
+                    },
+                    // 点击添加分类，图片替换为表单
+                    replaceForm: function () {
+                        $(".add").css("border", "5px #e1e1e1 solid");
+                        $(".add>div>img").remove();
+                        $(".add>div").append("<form class='add_form' action='#' method='post'></form>")
+                        $(".add>div>form").append("<input class='add_input' type='text' name='type'>");
+                        $(".add>div>form").append("<input class='add_submit' type='submit' value='添加'>");
+                        //动态添加的表单绑定事件
+                        $(".add_form").on('submit', function (event) {
+                            event.preventDefault();
+                            main.type = $(".add_input").val();
+                            main.validateAll();
+                        })
+                    },
+                    //验证表单内容
+                    validateAll: function () {
+                        if (!this.type) {
+                            alert("分类名不能为空！");
+                        }
+                        else {
+                            this.submitFormData("incruit/classifyModuleAddSave");
+                        }
+                    },
+                    //异步删除分类模块
+                    delClassifyModule: async function (e, type, warnText) {
+                        e.preventDefault();
+                        if (!confirm("你确定要删除这个" + warnText + "吗？")) {
+                            return;
+                        }
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/incruit/classifyModuleDelete?type=" + type)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            this.classifyModuleList = await this.getData("getAllClassifyModuleData");
+                        }
+                        else {
+                            alert("删除失败，请重试！");
+                        }
+                    }
+                },
+                //自动执行函数
+                async mounted() {
+                    //异步请求分类模块
+                    this.classifyModuleList = await this.getData("getAllClassifyModuleData");
+                    //请求用户名
+                    header.user = await this.getData("getUserData");
+                },
+            });
+            //选项卡样式
+            selectCard(4);
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 后台顶部开始 -->
+    <header id="header">
+        <ul>
+            <li><a class="index_link" :href="root+'incruit/index'">前台首页</a></li>
+            <li><a @click="logout($event)" href="#">注销</a></li>
+            <li>{{user}}</li>
+        </ul>
+    </header>
+    <!-- 后台顶部结束 -->
+    <!-- 左边栏开始 -->
+    <aside id="aside">
+        <div><a class="logo" :href="root+'incruit/index'">
+                <img class="logo_img" src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a></div>
+        <ul class="left_nav">
+            <li><a class="left_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="left_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="left_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="left_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="left_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+    </aside>
+    <!-- 左边栏结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <!-- 选项栏 -->
+        <ul class="select_nav">
+            <li><a class="top_select_item" :href="root+'position/positionAdmin'">职位管理</a></li>
+            <li><a class="top_select_item" :href="root+'position/positionAdd'">添加职位</a></li>
+            <li><a class="top_select_item" :href="root+'resume/resumeBox'">投历箱</a></li>
+            <li><a class="top_select_item" :href="root+'company/companyAdmin'">公司管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/classifyModuleAdmin'">分类管理</a></li>
+            <li><a class="top_select_item" :href="root+'incruit/advertiseAdmin'">广告管理</a></li>
+        </ul>
+        <div class="admin_area">
+            <p class="ppp">分类管理</p>
+            <!-- 分类模块 -->
+            <ul class="module_list">
+                <li v-for="classifyModule in classifyModuleList">
+                    <div>
+                        <p>{{classifyModule}}</p>
+                        <a href="#" @click="delClassifyModule($event, classifyModule, '分类模块')">
+                            <img class="close" src="http://106.55.99.196/static/images/classify_close.png">
+                        </a>
+                    </div>
+                </li>
+                <!-- 添加分类模块 -->
+                <li class="add" @click.once="replaceForm()">
+                    <div><img src="http://106.55.99.196/static/images/add.png"></div>
+                </li>
+            </ul>
+        </div>
+    </main>
+    <!-- 主要内容结束 -->
+
+</body>
+
+</html>

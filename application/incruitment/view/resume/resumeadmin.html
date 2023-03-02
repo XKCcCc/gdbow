@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的简历</title>
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/top.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/bottom.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/resumeAdmin.css">
+    <script>
+        window.onload = function () {
+            // 头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    user: "",
+                    root: "http://106.55.99.196/",
+                },
+                methods:{
+                    //用户注销
+                    logout:async function(e)
+                    {
+                        e.preventDefault();
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/login/logout")
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if(res == 1)
+                        {
+                            this.user = await main.getData("getUserData");
+                        }
+                    }
+                }
+            });
+            // 底部Vue实例
+            var footer = new Vue({
+                el: "#footer",
+                data: {
+                    root: "http://106.55.99.196/",
+                }
+            });
+            // 主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    root: "http://106.55.99.196/",
+                    imgRoot: "http://106.55.99.196/static/images/upload/",
+                    user: "",
+                    resume: {user:"",user_img:"user.jpg"},
+                },
+                methods: {
+                    //链接拼接
+                    pieceLink: function (root, fileName) {
+                        return root + fileName;
+                    },
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                    // 异步删除简历
+                    delResume:async function(e, id, warnText)
+                    {
+                        e.preventDefault();
+                        if (!confirm("你确定要删除这个" + warnText + "吗？")) {
+                            return;
+                        }
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/resume/resumeDelete?id="+id)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if(res == 1)
+                        {
+                            this.resume.name = this.resume.gender = this.resume.birthday = this.resume.edu_bg = "";
+                            this.resume.phone = this.resume.mail = this.resume.item_cont = this.resume.edu_time = "";
+                            this.resume.school = this.resume.profess = this.resume.major = this.resume.pos_time = "";
+                            this.resume.position = this.resume.company = this.resume.pos_cont = this.resume.item = "";
+                            this.resume.user_img = "user.jpg";
+                        }
+                        else
+                        {
+                            alert("删除失败，请重试！");
+                        }
+                    }
+                },
+                // 自动执行函数
+                async mounted() {
+                    //异步请求用户名
+                    header.user = this.user = await this.getData("getUserData");
+                    //异步请求简历数据
+                    var resumeInfo = await this.getData("getScreenResumeData/user/" + this.user);
+                    if(resumeInfo.length)
+                    {
+                        this.resume = resumeInfo[0];
+                    }
+                    else
+                    {
+                        this.resume.name = this.resume.gender = this.resume.birthday = this.resume.edu_bg = "";
+                        this.resume.phone = this.resume.mail = this.resume.item_cont = this.resume.edu_time = "";
+                        this.resume.school = this.resume.profess = this.resume.major = this.resume.pos_time = "";
+                        this.resume.position = this.resume.company = this.resume.pos_cont = this.resume.item = "";
+                        this.resume.user_img = "user.jpg";
+                    }
+                },
+            })
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 头部开始 -->
+    <header id="header">
+        <div class="header_bar">
+            <a class="logo" :href="root+'incruit/index'">
+                <img class="logo_img" src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a>
+            <ul class="header_bar_nav">
+                <li><a :href="root+'incruit/index'">首页</a></li>
+                <li><a :href="root+'incruit/blank'">校园</a></li>
+                <li><a :href="root+'incruit/blank'">海归</a></li>
+                <li><a :href="root+'incruit/blank'">职位</a></li>
+            </ul>
+            <ul class="header_user_login">
+                <li v-if="!this.user"><a :href="root+'login/signin'">注册</a></li>
+                <li v-if="!this.user"><a :href="root+'login/login'">登录</a></li>
+                <li v-if="this.user"><a @click="logout($event)" href="#">注销</a></li>
+                <li v-if="this.user">{{user}}</li>
+                <li v-if="this.user"><a :href="root+'resume/resumeAdmin'">我的简历</a></li>
+                <li v-if="this.user == 'admin'"><a :href="root+'position/positionAdmin'">后台首页</a></li>
+            </ul>
+        </div>
+    </header>
+    <!-- 头部结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <p class="tit">我的简历</p>
+        <p class="remind" v-if="!resume.name">您还没有在线简历，快去添加吧！</p>
+        <a class="add_link" v-if="!resume.name" :href="root+'resume/resumeAdd'">立即添加</a>
+        <a class="modify_del_btn" v-if="resume.name" :href="root+'resume/resumeDelete?id='+resume.id"
+             @click="delResume($event, resume.id, '简历')">删除</a>
+        <a class="modify_del_btn" v-if="resume.name" :href="root+'resume/resumeModify?id='+resume.id">修改</a>
+        <!-- 表格1 -->
+        <table class="table_1 table table-striped table-bordered">
+            <tr class="thead">
+                <td colspan="4">
+                    个人信息
+                </td>
+            </tr>
+            <tr class="resume_info">
+                <td>
+                    <p>姓名：</p>
+                    <p class="rem_cont">{{resume.name}}</p>
+                </td>
+                <td>
+                    <p>性别：</p>
+                    <p class="rem_cont">{{resume.gender}}</p>
+                </td>
+                <td rowspan="3"></td>
+                <td class="resume_img" rowspan="3">
+                    <p>头像：</p>
+                    <img :src="pieceLink(imgRoot, resume.user_img)">
+                </td>
+            </tr>
+            <tr class="resume_info">
+                <td>
+                    <p>生日：</p>
+                    <p class="rem_cont">{{resume.birthday}}</p>
+                </td>
+                <td>
+                    <p>学历：</p>
+                    <p class="rem_cont">{{resume.edu_bg}}</p>
+                </td>
+            </tr>
+            <tr class="resume_info">
+                <td>
+                    <p>电话：</p>
+                    <p class="rem_cont">{{resume.phone}}</p>
+                </td>
+                <td>
+                    <p>邮箱：</p>
+                    <p class="rem_cont">{{resume.mail}}</p>
+                </td>
+            </tr>
+        </table>
+        <!-- 表格2 -->
+        <table class="table_2 table table-striped table-bordered">
+            <tr class="thead">
+                <td colspan="3">
+                    教育经历
+                </td>
+            </tr>
+            <tr class="resume_info">
+                <td>
+                    <p>时间：</p>
+                    <p class="rem_cont">{{resume.edu_time}}</p>
+                </td>
+                <td>
+                    <p>学校：</p>
+                    <p class="rem_cont">{{resume.school}}</p>
+                </td>
+                <td>
+                    <p>专业：</p>
+                    <p class="rem_cont">{{resume.profess}}</p>
+                </td>
+            </tr>
+            <tr class="resume_info">
+                <td colspan="3">
+                    <p>主修课程：</p>
+                    <p class="rem_cont">{{resume.major}}</p>
+                </td>
+            </tr>
+        </table>
+        <!-- 表格3 -->
+        <table class="table_3 table table-striped table-bordered">
+            <tr class="thead">
+                <td colspan="2">
+                    工作经历
+                </td>
+            </tr>
+            <tr class="resume_info">
+                <td>
+                    <p>职位：</p>
+                    <p class="rem_cont">{{resume.position}}</p>
+                </td>
+                <td>
+                    <p>时间：</p>
+                    <p class="rem_cont">{{resume.pos_time}}</p>
+                </td>
+            </tr>
+            <tr class="resume_info">
+                <td colspan="2">
+                    <p>公司：</p>
+                    <p class="rem_cont">{{resume.company}}</p>
+                </td>
+            </tr>
+            <tr class="resume_info">
+                <td colspan="2">
+                    <p>职位内容：</p>
+                    <div class="rem_cont">{{resume.pos_cont}}</div>
+                </td>
+            </tr>
+        </table>
+        <!-- 表格4 -->
+        <table class="table_4 table table-striped table-bordered">
+            <tr class="thead">
+                <td>
+                    项目经历
+                </td>
+            </tr>
+            <tr class="resume_info">
+                <td>
+                    <p>项目名称：</p>
+                    <p class="rem_cont">{{resume.item}}</p>
+                </td>
+            </tr>
+            <tr class="resume_info">
+                <td>
+                    <p>项目内容：</p>
+                    <div class="rem_cont">{{resume.item_cont}}</div>
+                </td>
+            </tr>
+        </table>
+    </main>
+    <!-- 主要内容结束 -->
+    <!-- 底部开始 -->
+    <footer id="footer">
+        <div class="footer_bar">
+            <div class="footer_bar_nav">
+                <ul>
+                    <li>简介</li>
+                    <li><a :href="root+'incruit/blank'">关于我们</a></li>
+                    <li><a :href="root+'incruit/blank'">法律协议</a></li>
+                    <li><a :href="root+'incruit/blank'">隐私条款</a></li>
+                </ul>
+                <ul>
+                    <li>合作</li>
+                    <li><a :href="root+'incruit/blank'">加入我们</a></li>
+                    <li><a :href="root+'incruit/blank'">联系我们</a></li>
+                    <li><a :href="root+'incruit/blank'">友情链接</a></li>
+                </ul>
+                <ul>
+                    <li>帮助</li>
+                    <li><a :href="root+'incruit/blank'">帮助中心</a></li>
+                    <li><a :href="root+'incruit/blank'">常见问题</a></li>
+                    <li><a :href="root+'incruit/blank'">防骗指南</a></li>
+                </ul>
+            </div>
+            <p class="footer_bar_txt">金饭网由Kc开发</p>
+        </div>
+    </footer>
+    <!-- 底部结束 -->
+</body>
+
+</html>

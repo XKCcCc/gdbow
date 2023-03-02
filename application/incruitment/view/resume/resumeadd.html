@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加简历</title>
+    <link href="http://106.55.99.196/static/library/bootstrap.min.css" rel="stylesheet">
+    <script src="http://106.55.99.196/static/library/bootstrap.min.js"></script>
+    <script src="http://106.55.99.196/static/library/jquery-1.7.2.js"></script>
+    <script src="http://106.55.99.196/static/library/vue.js"></script>
+    <script src="http://106.55.99.196/static/js/function.js"></script>
+    <script src="http://106.55.99.196/static/library/axios.js"></script>
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/top.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/bottom.css">
+    <link rel="stylesheet" href="http://106.55.99.196/static/css/resumeAdd.css">
+    <script>
+        window.onload = function () {
+            //头部Vue实例
+            var header = new Vue({
+                el: "#header",
+                data: {
+                    user: "",
+                    root: "http://106.55.99.196/",
+                },
+                methods: {
+                    //用户注销
+                    logout: async function (e) {
+                        e.preventDefault();
+                        var res;
+                        await axios
+                            .get("http://106.55.99.196/login/logout")
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        if (res == 1) {
+                            this.user = await main.getData("getUserData");
+                        }
+                    }
+                }
+            });
+            // 底部Vue实例
+            var footer = new Vue({
+                el: "#footer",
+                data: {
+                    root: "http://106.55.99.196/",
+                }
+            });
+            // 主要内容Vue实例
+            var main = new Vue({
+                el: "#main",
+                data: {
+                    root: "http://106.55.99.196/",
+                    imgRoot: "http://106.55.99.196/static/images/upload/",
+                    user: "",
+                    resume: { name: "", gender: "", birthday: "", edu_bg: "", phone: "", mail: "", user_img: "", edu_time: "", school: "", profess: "", major: "", position: "", pos_time: "", company: "", pos_cont: "", item: "", item_cont: "" },
+                    error1: "",
+                    error2: "",
+                    error3: "",
+                    error4: "",
+                },
+                methods: {
+                    //链接拼接
+                    pieceLink: function (root, fileName) {
+                        return root + fileName;
+                    },
+                    // 异步请求数据
+                    getData: async function (api) {
+                        var data;
+                        await axios
+                            .get("http://106.55.99.196/Api/" + api)
+                            .then(response => {
+                                data = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        return data;
+                    },
+                    // 获取上传图片信息
+                    getImgInfo: function (inputClass, inputClassNum) {
+                        var f = document.getElementsByClassName(inputClass)[inputClassNum].files[0];
+                        this.resume.user_img = f;
+                    },
+                    // 异步提交表单
+                    submitFormData: async function (api) {
+                        let formData = new FormData();
+                        formData.append("user", this.user);
+                        formData.append("name", this.resume.name);
+                        formData.append("gender", this.resume.gender);
+                        formData.append("birthday", this.resume.birthday);
+                        formData.append("edu_bg", this.resume.edu_bg);
+                        formData.append("phone", this.resume.phone);
+                        formData.append("mail", this.resume.mail);
+                        formData.append("user_img", this.resume.user_img);
+                        formData.append("edu_time", this.resume.edu_time);
+                        formData.append("school", this.resume.school);
+                        formData.append("profess", this.resume.profess);
+                        formData.append("major", this.resume.major);
+                        formData.append("position", this.resume.position);
+                        formData.append("pos_time", this.resume.pos_time);
+                        formData.append("company", this.resume.company);
+                        formData.append("pos_cont", this.resume.pos_cont);
+                        formData.append("item", this.resume.item);
+                        formData.append("item_cont", this.resume.item_cont);
+                        var res;
+                        await axios
+                            .post("http://106.55.99.196/" + api, formData)
+                            .then(response => {
+                                res = response.data;
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                        switch (res) {
+                            case 0:
+                                document.getElementById("submit_btn").value = "添加图片失败，请重试！";
+                                document.getElementById("reset_btn").style.display = "none";
+                                setTimeout(() => {
+                                    window.location.href = "http://106.55.99.196/resume/resumAdd";
+                                }, 2000);
+                                break;
+                            case 1:
+                                document.getElementById("submit_btn").value = "添加成功！";
+                                document.getElementById("reset_btn").style.display = "none";
+                                setTimeout(() => {
+                                    window.location.href = "http://106.55.99.196/resume/resumeAdmin";
+                                }, 2000);
+                                break;
+                            case 2:
+                                document.getElementById("submit_btn").value = "添加失败，请重试！";
+                                document.getElementById("reset_btn").style.display = "none";
+                                setTimeout(() => {
+                                    window.location.href = "http://106.55.99.196/resume/resumAdd";
+                                }, 2000);
+                                break;
+                        }
+                    },
+                    // 验证输入框内容
+                    validate: function (inputValue, alertText, errorArea) {
+                        if (!inputValue) {
+                            switch (errorArea) {
+                                case 1:
+                                    this.error1 = alertText + "不能为空!";
+                                    break;
+                                case 2:
+                                    this.error2 = alertText + "不能为空!";
+                                    break;
+                                case 3:
+                                    this.error3 = alertText + "不能为空!";
+                                    break;
+                                case 4:
+                                    this.error4 = alertText + "不能为空!";
+                                    break;
+                            }
+                        }
+                        else {
+                            switch (errorArea) {
+                                case 1:
+                                    this.error1 = "";
+                                    break;
+                                case 2:
+                                    this.error2 = "";
+                                    break;
+                                case 3:
+                                    this.error3 = "";
+                                    break;
+                                case 4:
+                                    this.error4 = "";
+                                    break;
+                            }
+                        }
+                    },
+                    //验证所有
+                    validateAll: function (e) {
+                        e.preventDefault();
+                        for (let key in this.resume) {
+                            if (this.resume[key] == "") {
+                                if (key == "com_img" || key == "pub_img") {
+                                    continue;
+                                }
+                                else if (key == "name") this.validate(this.resume.name, "姓名", 1);
+                                else if (key == "gender") this.validate(this.resume.gender, "性别", 1);
+                                else if (key == "birthday") this.validate(this.resume.birthday, "生日", 1);
+                                else if (key == "edu_bg") this.validate(this.resume.edu_bg, "学历", 1);
+                                else if (key == "phone") this.validate(this.resume.phone, "电话", 1);
+                                else if (key == "mail") this.validate(this.resume.mail, "邮箱", 1);
+                                else if (key == "edu_time") this.validate(this.resume.edu_time, "教育时间", 2);
+                                else if (key == "school") this.validate(this.resume.school, "学校", 2);
+                                else if (key == "profess") this.validate(this.resume.profess, "专业", 2);
+                                else if (key == "major") this.validate(this.resume.major, "主修课程", 2);
+                                else if (key == "position") this.validate(this.resume.position, "工作职位", 3);
+                                else if (key == "pos_time") this.validate(this.resume.pos_time, "工作时间", 3);
+                                else if (key == "company") this.validate(this.resume.company, "公司名称", 3);
+                                else if (key == "pos_cont") this.validate(this.resume.pos_cont, "职位内容", 3);
+                                else if (key == "item") this.validate(this.resume.item, "项目名称", 4);
+                                else if (key == "item_cont") this.validate(this.resume.item_cont, "项目内容", 4);
+                            }
+                        }
+                        if (!this.error1 && !this.error2 && !this.error3 && !this.error4) {
+                            this.submitFormData("/resume/resumeAddSave");
+                        }
+                    }
+                },
+                // 自动执行函数
+                async mounted() {
+                    //异步请求用户名
+                    header.user = this.user = await this.getData("getUserData");
+                },
+            })
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 头部开始 -->
+    <header id="header">
+        <div class="header_bar">
+            <a class="logo" :href="root+'incruit/index'">
+                <img class="logo_img" src="http://106.55.99.196/static/images/logo.png">
+                <p class="logo_cont">金饭网</p>
+            </a>
+            <ul class="header_bar_nav">
+                <li><a :href="root+'incruit/index'">首页</a></li>
+                <li><a :href="root+'incruit/blank'">校园</a></li>
+                <li><a :href="root+'incruit/blank'">海归</a></li>
+                <li><a :href="root+'incruit/blank'">职位</a></li>
+            </ul>
+            <ul class="header_user_login">
+                <li v-if="!this.user"><a :href="root+'login/signin'">注册</a></li>
+                <li v-if="!this.user"><a :href="root+'login/login'">登录</a></li>
+                <li v-if="this.user"><a @click="logout($event)" href="#">注销</a></li>
+                <li v-if="this.user">{{user}}</li>
+                <li v-if="this.user"><a :href="root+'resume/resumeAdmin'">我的简历</a></li>
+                <li v-if="this.user == 'admin'"><a :href="root+'position/positionAdmin'">后台首页</a></li>
+            </ul>
+        </div>
+    </header>
+    <!-- 头部结束 -->
+    <!-- 主要内容开始 -->
+    <main id="main">
+        <p class="tit">添加简历</p>
+        <!-- 简历添加表单 -->
+        <form @submit="validateAll($event)" action="#" method="post" enctype="multipart/form-data">
+            <!-- 表格1 -->
+            <table class="table_1 table table-striped table-bordered">
+                <tr class="thead">
+                    <td colspan="4">
+                        个人信息
+                    </td>
+                </tr>
+                <tr class="resume_info">
+                    <td>
+                        <p>姓名：</p>
+                        <input type="text" placeholder="请输入姓名" name="name" v-model="resume.name"
+                            @blur="validate(resume.name, '姓名', 1)">
+                        <input type="text" :value="user" hidden name="user">
+                    </td>
+                    <td>
+                        <p>性别：</p>
+                        <select name="gender" v-model="resume.gender" @blur="validate(resume.gender, '性别', 1)">
+                            <option selected disabled="disabled" label="请选择性别"></option>
+                            <option value="男">男</option>
+                            <option value="女">女</option>
+                        </select>
+                    </td>
+                    <td rowspan="3"></td>
+                    <td rowspan="3">
+                        <p>头像：</p>
+                        <div class="file_input">
+                            <input class="upload_img" type="file" onchange="showImg('upload_img', 'show_img', 0)"
+                                @change="getImgInfo('upload_img', 0)" name="user_img" accept="image/*">
+                            选择图片
+                        </div>
+                        <img class="show_img" src="">
+                    </td>
+                </tr>
+                <tr class="resume_info">
+                    <td>
+                        <p>生日：</p>
+                        <input type="text" placeholder="请输入生日" name="birthday" v-model="resume.birthday"
+                            @blur="validate(resume.birthday, '生日', 1)">
+                    </td>
+                    <td>
+                        <p>学历：</p>
+                        <select name="edu_bg" v-model="resume.edu_bg" @blur="validate(resume.edu_bg, '学历', 1)">
+                            <option selected disabled="disabled" label="请选择学历"></option>
+                            <option value="高中">高中</option>
+                            <option value="专科">专科</option>
+                            <option value="本科">本科</option>
+                            <option value="硕士">硕士</option>
+                            <option value="博士">博士</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr class="resume_info">
+                    <td>
+                        <p>电话：</p>
+                        <input type="text" placeholder="请输入电话" name="phone" v-model="resume.phone"
+                            @blur="validate(resume.phone, '电话', 1)">
+                    </td>
+                    <td>
+                        <p>邮箱：</p>
+                        <input type="text" placeholder="请输入邮箱" name="mail" v-model="resume.mail"
+                            @blur="validate(resume.mail, '邮箱', 1)">
+                    </td>
+                </tr>
+                <tr>
+                    <td class="error_area text-danger" colspan="4">{{error1}}</td>
+                </tr>
+            </table>
+            <!-- 表格2 -->
+            <table class="table_2 table table-striped table-bordered">
+                <tr class="thead">
+                    <td colspan="3">
+                        教育经历
+                    </td>
+                </tr>
+                <tr class="resume_info">
+                    <td>
+                        <p>时间：</p>
+                        <input type="text" placeholder="请输入时间" name="edu_time" v-model="resume.edu_time"
+                            @blur="validate(resume.edu_time, '教育时间', 2)">
+                    </td>
+                    <td>
+                        <p>学校：</p>
+                        <input type="text" placeholder="请输入学校" name="school" v-model="resume.school"
+                            @blur="validate(resume.school, '学校', 2)">
+                    </td>
+                    <td>
+                        <p>专业：</p>
+                        <input type="text" placeholder="请输入专业" name="profess" v-model="resume.profess"
+                            @blur="validate(resume.profess, '专业', 2)">
+                    </td>
+                </tr>
+                <tr class="resume_info">
+                    <td colspan="3">
+                        <p>主修课程：</p>
+                        <input type="text" placeholder="请输入主修课程" name="major" v-model="resume.major"
+                            @blur="validate(resume.major, '主修课程', 2)">
+                    </td>
+                </tr>
+                <tr>
+                    <td class="error_area text-danger" colspan="3">{{error2}}</td>
+                </tr>
+            </table>
+            <!-- 表格3 -->
+            <table class="table_3 table table-striped table-bordered">
+                <tr class="thead">
+                    <td colspan="2">
+                        工作经历
+                    </td>
+                </tr>
+                <tr class="resume_info">
+                    <td>
+                        <p>职位：</p>
+                        <input type="text" placeholder="请输入职位" name="position" v-model="resume.position"
+                            @blur="validate(resume.position, '工作职位', 3)">
+                    </td>
+                    <td>
+                        <p>时间：</p>
+                        <input type="text" placeholder="请输入时间" name="pos_time" v-model="resume.pos_time"
+                            @blur="validate(resume.pos_time, '工作时间', 3)">
+                    </td>
+                </tr>
+                <tr class="resume_info">
+                    <td colspan="2">
+                        <p>公司：</p>
+                        <input type="text" placeholder="请输入公司" name="company" v-model="resume.company"
+                            @blur="validate(resume.company, '公司名称', 3)">
+                    </td>
+                </tr>
+                <tr class="resume_info">
+                    <td colspan="2">
+                        <p>职位内容：</p>
+                        <textarea cols="30" rows="10" placeholder="请输入职位内容" name="pos_cont" v-model="resume.pos_cont"
+                            @blur="validate(resume.pos_cont, '职位内容', 3)"></textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="error_area text-danger" colspan="2">{{error3}}</td>
+                </tr>
+            </table>
+            <!-- 表格3结束 -->
+            <!-- 表格4开始 -->
+            <table class="table_4 table table-striped table-bordered">
+                <tr class="thead">
+                    <td>
+                        项目经历
+                    </td>
+                </tr>
+                <tr class="resume_info">
+                    <td>
+                        <p>项目名称：</p>
+                        <input type="text" placeholder="请输入项目名称" name="item" v-model="resume.item"
+                            @blur="validate(resume.item, '项目名称', 4)">
+                    </td>
+                </tr>
+                <tr class="resume_info">
+                    <td>
+                        <p>项目内容：</p>
+                        <textarea cols="30" rows="10" placeholder="请输入项目内容" name="item_cont" v-model="resume.item_cont"
+                            @blur="validate(resume.item_cont, '项目内容', 4)"></textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="error_area text-danger" colspan="1">{{error4}}</td>
+                </tr>
+            </table>
+            <div class="sub_btn">
+                <input id="submit_btn" type="submit" value="添 加">
+                <input id="reset_btn" type="reset" value="重 置">
+            </div>
+        </form>
+    </main>
+    <!-- 主要内容结束 -->
+    <!-- 底部开始 -->
+    <footer id="footer">
+        <div class="footer_bar">
+            <div class="footer_bar_nav">
+                <ul>
+                    <li>简介</li>
+                    <li><a :href="root+'incruit/blank'">关于我们</a></li>
+                    <li><a :href="root+'incruit/blank'">法律协议</a></li>
+                    <li><a :href="root+'incruit/blank'">隐私条款</a></li>
+                </ul>
+                <ul>
+                    <li>合作</li>
+                    <li><a :href="root+'incruit/blank'">加入我们</a></li>
+                    <li><a :href="root+'incruit/blank'">联系我们</a></li>
+                    <li><a :href="root+'incruit/blank'">友情链接</a></li>
+                </ul>
+                <ul>
+                    <li>帮助</li>
+                    <li><a :href="root+'incruit/blank'">帮助中心</a></li>
+                    <li><a :href="root+'incruit/blank'">常见问题</a></li>
+                    <li><a :href="root+'incruit/blank'">防骗指南</a></li>
+                </ul>
+            </div>
+            <p class="footer_bar_txt">金饭网由Kc开发</p>
+        </div>
+    </footer>
+    <!-- 底部结束 -->
+</body>
+
+</html>
